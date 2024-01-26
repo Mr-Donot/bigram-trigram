@@ -7,22 +7,25 @@ int main(){
 
     std::string build_folder = "build";
 
-    std::vector<std::string> cppFiles = {"main"};
-    std::size_t vectorSize = cppFiles.size();
+
+
+    std::string name = "main";
     
     int result;
 
-    for (std::size_t i = 0 ; i < vectorSize ; i++){
-        std::string compileCommand = "g++ -Wall -o " + build_folder + "/" + cppFiles[i] + " " + cppFiles[i] + ".cpp";
-        std::cout << "Compiling " + cppFiles[i] + ".cpp ..." << std::endl;
-        result = std::system(compileCommand.c_str());
+    std::string cppOrdered  = "seq_text_proc.cpp par_text_proc.cpp main.cpp";
 
-        if (result == 0) {
-            std::cout << "Compilation successful!" << std::endl;
-        } else {
-            std::cerr << "Compilation failed. Error code: " << result << std::endl;
-        }
+    
+    std::string compileCommand = "g++ -fopenmp -o " + build_folder + "/" + name + " " + cppOrdered;
+    std::cout << "Compiling ..." << std::endl;
+    result = std::system(compileCommand.c_str());
+
+    if (result == 0) {
+        std::cout << "Compilation successful!" << std::endl;
+    } else {
+        std::cerr << "Compilation failed. Error code: " << result << std::endl;
     }
+    
     
 
     

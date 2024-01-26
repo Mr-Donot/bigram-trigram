@@ -3,64 +3,33 @@
 #include <sstream>
 #include <vector>
 #include <map>
-
-// Function to generate bigrams from a given vector of words
-std::vector<std::pair<std::string, std::string>> generateBigrams(const std::vector<std::string>& words) {
-    std::vector<std::pair<std::string, std::string>> bigrams;
-    
-    for (size_t i = 0; i < words.size() - 1; ++i) {
-        bigrams.push_back(std::make_pair(words[i], words[i + 1]));
-    }
-    
-    return bigrams;
-}
-
-// Function to generate trigrams from a given vector of words
-std::vector<std::tuple<std::string, std::string, std::string>> generateTrigrams(const std::vector<std::string>& words) {
-    std::vector<std::tuple<std::string, std::string, std::string>> trigrams;
-
-    for (size_t i = 0; i < words.size() - 2; ++i) {
-        trigrams.push_back(std::make_tuple(words[i], words[i + 1], words[i + 2]));
-    }
-
-    return trigrams;
-}
+#include "seq_text_proc.h"
+#include "par_text_proc.h"
+#include <chrono>
 
 int main() {
-    // Assuming the file is named "fr.txt"
-    std::ifstream inputFile("./data/fr.txt");
-
-    if (!inputFile.is_open()) {
-        std::cerr << "Error opening file." << std::endl;
-        return 1;
-    }
-
-    std::vector<std::string> words;
-    std::string line;
     
-    // Read the content of the file
-    while (std::getline(inputFile, line)) {
-        std::istringstream iss(line);
-        std::string word;
-        
-        // Tokenize the line into words
-        while (iss >> word) {
-            words.push_back(word);
-        }
-    }
+    std::string pathFile = "./data/fr.txt";
+    std::vector<std::string> words = get_content_file(pathFile);
 
-    // Generate bigrams
+    auto start1 = std::chrono::high_resolution_clock::now();
+
     std::vector<std::pair<std::string, std::string>> bigrams = generateBigrams(words);
-    std::vector<std::tuple<std::string, std::string, std::string>> trigrams = generateTrigrams(words);
+    auto end1 = std::chrono::high_resolution_clock::now();
+    auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
 
-    // Display the bigrams
-    //for (const auto& bigram : bigrams) {
-    //    std::cout << "(" << bigram.first << ", " << bigram.second << ") ";
-    //}
+    size_t nbThread = 8;
 
-    for (const auto& trigram : trigrams) {
-        std::cout << "(" << std::get<0>(trigram) << ", " << std::get<1>(trigram) << ", " << std::get<2>(trigram) << ") ";
-    }
+    auto start2 = std::chrono::high_resolution_clock::now();
+    std::vector<std::pair<std::string, std::string>> bigramsPara = generateBigramsPara(words, nbThread);
+    auto end2 = std::chrono::high_resolution_clock::now();
+
+    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
+
+    std::cout << "Time in sequential : " << static_cast<double>(duration1) / 1'000'000.0 << " seconds"<<std::endl;
+    std::cout << "Time in parallel : " << static_cast<double>(duration2) / 1'000'000.0 << " seconds"<<std::endl;
+    
+    std::cout << "The best is " << (duration1 < duration2 ? "sequential" : "parallel") << std::endl;
 
     return 0;
 }
