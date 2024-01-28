@@ -34,31 +34,47 @@ std::vector<std::vector<std::string>> split_text(const std::vector<std::string>&
 }
 
 
-std::vector<std::pair<std::string, std::string>> generateBigramsPara(const std::vector<std::string>& words, size_t nbThread){
 
-    std::vector<std::vector<std::string>> subTextList = split_text(words, nbThread);
-
-    // Concatenate all thread bigrams into one vector
-    std::vector<std::pair<std::string, std::string>> result;
-
-#pragma omp parallel
-    {
-        std::vector<std::pair<std::string, std::string>> localResult;
-
-        #pragma omp for
-        for (int i = 0; i < nbThread; ++i) {
-            std::vector<std::pair<std::string, std::string>> bigrams = generateBigrams(subTextList[i]);
-            localResult.insert(localResult.end(), bigrams.begin(), bigrams.end());
-        }
-
-        // Combine local results using critical section
-        #pragma omp critical
-        result.insert(result.end(), localResult.begin(), localResult.end());
+std::vector<std::pair<std::string, std::string>> generateBigramsPara(const std::vector<std::string>& words, size_t nbThread) {
+    // Calculate the starting index for each thread
+    std::vector<size_t> threadStartIndices(nbThread, 0);
+    size_t totalLength = words.size() - 1;
+    size_t chunkSize = totalLength / nbThread;
+    for (size_t i = 1; i < nbThread; ++i) {
+        threadStartIndices[i] = threadStartIndices[i - 1] + chunkSize;
     }
+
+    // Create a result with exact needed space
+    std::vector<std::pair<std::string, std::string>> result;
+    result.reserve(totalLength);  // Avoid unnecessary reallocations
+
+    std::cout << "Total : " << result.capacity() << std::endl;
+
+    // Create private containers for each thread
+    std::vector<std::vector<std::pair<std::string, std::string>>> threadResults(nbThread);
+
+    omp_set_num_threads(static_cast<int>(nbThread));
+
+    // Parallel loop to fill the private containers
+    #pragma omp parallel for
+    for (int threadId = 0; threadId < static_cast<int>(nbThread); ++threadId) {
+        size_t startIndex = threadStartIndices[threadId];
+        size_t endIndex = (threadId == nbThread - 1) ? totalLength : threadStartIndices[threadId + 1];
+
+        for (size_t i = startIndex; i < endIndex; ++i) {
+            threadResults[threadId].emplace_back(words[i], words[i + 1]);
+        }
+    }
+    // Combine results from private containers into the final result
+    for (auto& threadResult : threadResults) {
+        // Use move semantics to transfer ownership of the elements
+        result.insert(result.end(), std::make_move_iterator(threadResult.begin()), std::make_move_iterator(threadResult.end()));
+        // Clear the threadResult vector (optional)
+        threadResult.clear();
+    }
+
+    // After combining, shrink the capacity to fit the actual size
+    //result.shrink_to_fit();
 
     return result;
 }
-
-
-
-
