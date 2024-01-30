@@ -33,5 +33,6 @@
 
 # Others
 latex/*
-*.txt
 .vscode/*
+data/e.txt
+data/f.txt
